@@ -6,7 +6,9 @@ clock = pygame.time.Clock()
 running = True
 max_fps = 75
 
-player_sprite = pygame.image.load("91ce98cec1df0f769321571724f1f312.jpg")
+player_sprite = pygame.transform.scale(
+    pygame.image.load("91ce98cec1df0f769321571724f1f312.jpg"), (100, 100)
+)
 background_sprite = pygame.image.load("d011d6bc1effc67ae5c74bbc5ce090c2.jpg")
 pressed_key = []
 
@@ -24,15 +26,14 @@ class player_class:
         self.x = screen.get_width() / 2
         self.y = screen.get_height() / 2
         self.angle = pygame.math.Vector2(-1, 0)
-        self.max_speed = 10
+        self.max_speed = 7.5
         self.speed = pygame.math.Vector2(0, 0)
 
         self.tick_to_reach_max_speed = 40
-        self.tick_to_slow_down = 10
+        self.tick_to_slow_down = 20
 
-        self.acceleration_per_tick = pygame.math.Vector2(
-            self.max_speed / self.tick_to_reach_max_speed, 0
-        )
+        self.acceleration_per_tick = self.max_speed / self.tick_to_reach_max_speed
+        self.deceleration_per_tick = self.max_speed / self.tick_to_slow_down
 
     def draw_self(
         self,
@@ -40,15 +41,12 @@ class player_class:
         angle: pygame.math.Vector2,
         x: float,
         y: float,
-        width=100,
     ):
         x_relative, y_relative = get_coordinate_relative_to_screen(x, y)
-        print(x_relative, y_relative)
-        width_ratio = width / pygame.Surface.get_width(sprite)
-        resized_sprite = pygame.transform.rotozoom(
+
+        resized_sprite = pygame.transform.rotate(
             sprite,
             pygame.Vector2.as_polar(angle)[1] * -1 + 180,
-            width_ratio,
         )  # *-1 pour aller de clockwise à counterclockwise
         pygame.Surface.blit(
             screen,
@@ -59,19 +57,43 @@ class player_class:
             ),
         )
 
-    def accelerate(self, angle=float):
-        """0 of angle is on right and it goes counterclowkize"""
-        if self.speed.length() < self.max_speed:
-            self.speed += pygame.math.Vector2.rotate(self.acceleration_per_tick, angle)
+    def accelerate(self, direction: str):
+        global moved_this_tick
+        match direction:
+            case "right":
+                self.speed[0] += self.acceleration_per_tick
+            case "left":
+                self.speed[0] -= self.acceleration_per_tick
+            case "down":
+                self.speed[1] += self.acceleration_per_tick
+            case "up":
+                self.speed[1] -= self.acceleration_per_tick
+        if self.speed != pygame.Vector2(0, 0):  # otherwise clamp raise an error
+            self.speed = self.speed.clamp_magnitude(0, self.max_speed)
+        moved_this_tick = True
 
-    def slow_down(self):
-        if self.speed.length() > 0:
-            if self.speed.length() > self.max_speed / self.tick_to_slow_down:
-                self.speed.scale_to_length(
-                    self.speed.length() - self.max_speed / self.tick_to_slow_down
-                )
-            else:
-                self.speed = pygame.Vector2(0, 0)
+    def decelerate(self, direction: str):
+
+        if self.speed.length() < self.deceleration_per_tick and not moved_this_tick:
+            self.speed = pygame.Vector2(0, 0)
+        else:
+            match direction:
+                case "right":
+                    if self.speed[0] > 0:
+
+                        self.speed[0] -= self.deceleration_per_tick
+                case "left":
+                    if self.speed[0] < 0:
+
+                        self.speed[0] += self.deceleration_per_tick
+                case "down":
+                    if self.speed[1] > 0:
+
+                        self.speed[1] -= self.deceleration_per_tick
+                case "up":
+                    if self.speed[1] < 0:
+
+                        self.speed[1] += self.deceleration_per_tick
 
 
 def get_coordinate_relative_to_screen(x, y):
@@ -101,14 +123,6 @@ def display_follow_position(x, y, looseness_distance: float = 0):
             x_of_display += distance_to_object_without_looseness[0]
             y_of_display += distance_to_object_without_looseness[1]
 
-    pygame.draw.line(
-        screen,
-        "red",
-        (x_of_display + screen.get_width() / 2, y_of_display + screen.get_height() / 2),
-        distance_to_object + FROM_RIGHT_TOP_TO_MIDDLE_SCREEN_VECTOR,
-    )
-    pygame.draw.circle(screen, "blue", (x_of_display, y_of_display), 20)
-
 
 def show_image(sprite: pygame.Surface, x, y):
     x_relative, y_relative = get_coordinate_relative_to_screen(x, y)
@@ -122,7 +136,15 @@ def show_image(sprite: pygame.Surface, x, y):
     )
 
 
+key_mapped = dict(z="up", s="down", d="right", q="left")
+
+
+def key_mapping(key: str):
+    return key_mapped[key]
+
+
 player = player_class()
+
 
 while running:
 
@@ -141,24 +163,15 @@ while running:
             pressed_key.append(pygame.key.name(event.key))
         if event.type == pygame.KEYUP:
             pressed_key.pop(pressed_key.index(pygame.key.name(event.key)))
+
+    not_pressed_key = ["z", "q", "s", "d"]
+    moved_this_tick = False
     for key in pressed_key:
+        player.accelerate(key_mapping(key))
+        not_pressed_key.pop(not_pressed_key.index(key))
 
-        if key == "z":
-            player.accelerate(270)
-        if key == "q":
-            player.accelerate(180)
-        if key == "s":
-            player.accelerate(90)
-        if key == "d":
-            player.accelerate(0)
-
-    if not (
-        "z" in pressed_key
-        or "q" in pressed_key
-        or "s" in pressed_key
-        or "d" in pressed_key
-    ):  # has to be outside of for loop 'cause it don't execute when no key are being pressed
-        player.slow_down()
+    for key in not_pressed_key:
+        player.decelerate(key_mapping(key))
 
     player.x += player.speed[0]
     player.y += player.speed[1]
