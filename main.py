@@ -1,5 +1,5 @@
 import pygame
-from typing import Literal
+import random
 
 pygame.init()
 screen = pygame.display.set_mode((1280, 720), vsync=1)
@@ -145,41 +145,144 @@ case_size = 200
 wall_width = 20
 
 
-def show_wall(x_case: int, y_case: int, is_bottom: bool):
-    if is_bottom:
-        pygame.draw.rect(
-            screen,
-            "white",
-            pygame.Rect(
-                case_size * x_case - x_of_display,
-                case_size * y_case - y_of_display,
+def show_wall_with_orientation(case_position: tuple, orientation: int):
+
+    match orientation:  # 0 is up and it's going counterclockwise (i think)
+        case 0:
+            rect_to_draw = pygame.Rect(
+                case_size * case_position[0] - x_of_display,
+                case_size * case_position[1] - y_of_display,
+                case_size + wall_width,
                 wall_width,
-                case_size,
-            ),
-        )
-    else:
-        pygame.draw.rect(
-            screen,
-            "white",
-            pygame.Rect(
-                case_size * x_case - x_of_display,
-                case_size * y_case - y_of_display,
-                case_size,
+            )
+        case 1:
+            rect_to_draw = pygame.Rect(
+                case_size * case_position[0] - x_of_display,
+                case_size * case_position[1] - y_of_display,
                 wall_width,
-            ),
-        )
+                case_size + wall_width,
+            )
+        case 2:
+            rect_to_draw = pygame.Rect(
+                case_size * (case_position[0]) - x_of_display,
+                case_size * (case_position[1] + 1) - y_of_display,
+                case_size + wall_width,
+                wall_width,
+            )
+        case 3:
+            rect_to_draw = pygame.Rect(
+                case_size * (case_position[0] + 1) - x_of_display,
+                case_size * (case_position[1]) - y_of_display,
+                wall_width,
+                case_size + wall_width,
+            )
+
+    pygame.draw.rect(screen, "white", rect_to_draw)
+
+
+class letter_for_wall:
+    STRAIGHT_VERTICAL = ("i", (1, 3))
+    STRAIGHT_HORIZONTAL = ("_", (0, 2))
+
+    TURN_TOP_RIGHT = ("p", (0, 2))
+    TURN_TOP_LEFT = ("o", (0, 2))
+    TURN_DOWN_RIGHT = ("m", (0, 2))
+    TURN_DOWN_LEFT = ("l", (0, 2))
+
+    END_UP = ("z", (1, 2, 3))
+    END_LEFT = ("q", (0, 2, 3))
+    END_DOWN = ("s", (0, 1, 3))
+    END_RIGHT = ("d", (0, 1, 2))
+
+    NONE = ("f", ())
+    ALL = ("g", (0, 1, 2, 3))
+
+    TOP = ("f", (0))
+    DOWN = ("f", (2))
+    RIGHT = ("f", (3))
+    LEFT = ("f", (1))
+
+    ALL_LETTER = "i_opmlzqsdfgujkhgf"
+
+
+def show_wall_with_letter(case_position: tuple, letter: str):
+    match letter:
+
+        case letter_for_wall.NONE:
+            wall_to_draw = ()
+
+        case letter_for_wall.ALL:
+            wall_to_draw = (0, 1, 2, 3)
+
+        case letter_for_wall.TOP:
+            wall_to_draw = (0,)
+        case letter_for_wall.DOWN:
+            wall_to_draw = (2,)
+        case letter_for_wall.LEFT:
+            wall_to_draw = (1,)
+        case letter_for_wall.RIGHT:
+            wall_to_draw = (3,)
+        case letter_for_wall.STRAIGHT_VERTICAL:
+            wall_to_draw = (1, 3)
+        case letter_for_wall.STRAIGHT_HORIZONTAL:
+            wall_to_draw = (0, 2)
+
+        case letter_for_wall.END_DOWN:
+            wall_to_draw = (0, 1, 3)
+        case letter_for_wall.END_UP:
+            wall_to_draw = (1, 2, 3)
+        case letter_for_wall.END_LEFT:
+            wall_to_draw = (0, 2, 3)
+        case letter_for_wall.END_RIGHT:
+            wall_to_draw = (0, 1, 2)
+
+        case letter_for_wall.TURN_DOWN_LEFT:
+            wall_to_draw = (0, 3)
+        case letter_for_wall.TURN_DOWN_RIGHT:
+            wall_to_draw = (0, 1)
+
+        case letter_for_wall.TURN_TOP_LEFT:
+            wall_to_draw = (2, 3)
+        case letter_for_wall.TURN_TOP_RIGHT:
+            wall_to_draw = (2, 1)
+    for wall in wall_to_draw:
+        show_wall_with_orientation(case_position, wall)
 
 
 player = player_class()
 
+position = (0, 0)
+
+wall_map = []
+map_height = 50
+map_width = 50
+
+for i in range(map_height):  # height
+    for o in range(int(map_width / 2)):  # width
+        wall_map.append(
+            (
+                position,
+                letter_for_wall.ALL_LETTER[
+                    random.randrange(letter_for_wall.ALL_LETTER.__len__())
+                ],
+            )
+        )
+        position = (position[0] + 2, position[1])
+    print(position[0] % 2)
+    position = (position[0] % 2 + 1, position[1] + 1)
+
 
 while running:
-    show_image(background_sprite, 0, 0)
-    print(player.x, player.y)
-    show_wall(0, 0, False)
-    show_wall(0, 0, True)
 
-    screen_follow_position(player.x, player.y, 150)
+    print(player.x, player.y)
+    for pos, letter in wall_map:
+        show_wall_with_letter(
+            pos,
+            letter,
+        )
+    position = (position[0] + 1, position[1])
+
+    screen_follow_position(player.x, player.y, 200)
 
     player.draw_self(player_sprite, player.angle, player.x, player.y)
     pygame.display.flip()
