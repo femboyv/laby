@@ -180,9 +180,11 @@ def show_wall_with_orientation(case_position: tuple, orientation: int):
     pygame.draw.rect(screen, "white", rect_to_draw)
 
 
-class letter_for_wall:
-    STRAIGHT_VERTICAL = ("i", (1, 3))
-    STRAIGHT_HORIZONTAL = ("_", (0, 2))
+for pos, letter in wall_map:
+    show_case_by_letter(
+        pos,
+        letter,
+    )
 
     TURN_TOP_RIGHT = ("p", (0, 2))
     TURN_TOP_LEFT = ("o", (0, 2))
@@ -282,7 +284,7 @@ while running:
         )
     position = (position[0] + 1, position[1])
 
-    screen_follow_position(player.x, player.y, 200)
+    screen_follow_position(player.x, player.y, 0.75)
 
     player.draw_self(player_sprite, player.angle, player.x, player.y)
     pygame.display.flip()
