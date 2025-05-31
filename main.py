@@ -146,10 +146,10 @@ def key_mapping(key: str):
 type_of_wall = dict(
     STRAIGHT_VERTICAL=("i", (1, 3)),
     STRAIGHT_HORIZONTAL=("_", (0, 2)),
-    TURN_TOP_RIGHT=("p", (0, 2)),
-    TURN_TOP_LEFT=("o", (0, 2)),
-    TURN_DOWN_RIGHT=("m", (0, 2)),
-    TURN_DOWN_LEFT=("l", (0, 2)),
+    TURN_TOP_RIGHT=("p", (1, 2)),
+    TURN_TOP_LEFT=("o", (2, 3)),
+    TURN_DOWN_RIGHT=("m", (0, 1)),
+    TURN_DOWN_LEFT=("l", (0, 3)),
     END_UP=("z", (1, 2, 3)),
     END_LEFT=("q", (0, 2, 3)),
     END_DOWN=("s", (0, 1, 3)),
@@ -163,10 +163,10 @@ type_of_wall = dict(
 )
 
 
-case_size = 200
+tyle_size = 200
 wall_width = 20
-map_case_height = 50
-map_case_width = 50
+map_tyle_height = 50
+map_tyle_width = 50
 
 
 def generate_map():
@@ -175,9 +175,9 @@ def generate_map():
 
     position = (0, 0)
 
-    for i in range(map_case_height):  # height
-        for _ in range(int(map_case_width / 2)):  # width
-            wall_map.append((position, generate_random_case()))
+    for i in range(map_tyle_height):  # height
+        for _ in range(int(map_tyle_width / 2)):  # width
+            wall_map.append((position, generate_random_tyle()))
             position = (position[0] + 2, position[1])
 
         position = (i % 2, position[1] + 1)
@@ -185,7 +185,7 @@ def generate_map():
     return wall_map
 
 
-def generate_random_case():
+def generate_random_tyle():
     list_of_type = list(type_of_wall)
     return type_of_wall[list_of_type[random.randrange(list_of_type.__len__())]]
 
@@ -193,45 +193,51 @@ def generate_random_case():
 wall_map = generate_map()
 
 
-def show_case_by_letter(case_position: tuple, letter: str):
+def show_tyle_by_letter(tyle_position: tuple, letter: str):
     wall_to_draw = letter[1]
 
     for wall in wall_to_draw:
-        show_wall_by_orientation(case_position, wall)
+        show_wall_by_orientation(tyle_position, wall)
 
 
-def show_wall_by_orientation(case_position: tuple, orientation: int):
+def show_wall_by_orientation(tyle_position: tuple, orientation: int):
 
     match orientation:  # 0 is up and it's going counterclockwise (i think)
         case 0:
             rect_to_draw = pygame.Rect(
-                case_size * case_position[0] - x_of_display,
-                case_size * case_position[1] - y_of_display,
-                case_size + wall_width,
+                tyle_size * tyle_position[0] - x_of_display,
+                tyle_size * tyle_position[1] - y_of_display,
+                tyle_size + wall_width,
                 wall_width,
             )
         case 1:
             rect_to_draw = pygame.Rect(
-                case_size * case_position[0] - x_of_display,
-                case_size * case_position[1] - y_of_display,
+                tyle_size * tyle_position[0] - x_of_display,
+                tyle_size * tyle_position[1] - y_of_display,
                 wall_width,
-                case_size + wall_width,
+                tyle_size + wall_width,
             )
         case 2:
             rect_to_draw = pygame.Rect(
-                case_size * (case_position[0]) - x_of_display,
-                case_size * (case_position[1] + 1) - y_of_display,
-                case_size + wall_width,
+                tyle_size * (tyle_position[0]) - x_of_display,
+                tyle_size * (tyle_position[1] + 1) - y_of_display,
+                tyle_size + wall_width,
                 wall_width,
             )
         case 3:
             rect_to_draw = pygame.Rect(
-                case_size * (case_position[0] + 1) - x_of_display,
-                case_size * (case_position[1]) - y_of_display,
+                tyle_size * (tyle_position[0] + 1) - x_of_display,
+                tyle_size * (tyle_position[1]) - y_of_display,
                 wall_width,
-                case_size + wall_width,
+                tyle_size + wall_width,
             )
     pygame.draw.rect(screen, "white", rect_to_draw)
+
+
+def get_tyle_by_position_in_map(position: tuple):
+    position_in_map = int(position[0] * position[1] / 2)
+    tyle = wall_map[position_in_map][1]
+    return tyle
 
 
 player = player_class()
@@ -239,8 +245,10 @@ player = player_class()
 
 while running:
 
+    print(get_tyle_by_position_in_map((0, 0)))
+
     for pos, letter in wall_map:
-        show_case_by_letter(
+        show_tyle_by_letter(
             pos,
             letter,
         )
