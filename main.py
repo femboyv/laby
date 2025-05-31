@@ -1,5 +1,6 @@
 import pygame
 import random
+import math
 
 pygame.init()
 screen = pygame.display.set_mode((1280, 720), vsync=1)
@@ -163,10 +164,10 @@ type_of_wall = dict(
 )
 
 
-tyle_size = 200
+tile_size = 200
 wall_width = 20
-map_tyle_height = 50
-map_tyle_width = 50
+map_tile_height = 50
+map_tile_width = 50
 
 
 def generate_map():
@@ -175,9 +176,9 @@ def generate_map():
 
     position = (0, 0)
 
-    for i in range(map_tyle_height):  # height
-        for _ in range(int(map_tyle_width / 2)):  # width
-            wall_map.append((position, generate_random_tyle()))
+    for i in range(map_tile_height):  # height
+        for _ in range(int(map_tile_width / 2)):  # width
+            wall_map.append((position, generate_random_tile()))
             position = (position[0] + 2, position[1])
 
         position = (i % 2, position[1] + 1)
@@ -185,7 +186,7 @@ def generate_map():
     return wall_map
 
 
-def generate_random_tyle():
+def generate_random_tile():
     list_of_type = list(type_of_wall)
     return type_of_wall[list_of_type[random.randrange(list_of_type.__len__())]]
 
@@ -193,64 +194,95 @@ def generate_random_tyle():
 wall_map = generate_map()
 
 
-def show_tyle_by_letter(tyle_position: tuple, letter: str):
+def show_tile_by_letter(tile_position: tuple, letter: str):
+    global number_of_tile_rendered
     wall_to_draw = letter[1]
-
+    number_of_tile_rendered += 1
     for wall in wall_to_draw:
-        show_wall_by_orientation(tyle_position, wall)
+        show_wall_by_orientation(tile_position, wall)
 
 
-def show_wall_by_orientation(tyle_position: tuple, orientation: int):
+def show_wall_by_orientation(tile_position: tuple, orientation: int):
 
     match orientation:  # 0 is up and it's going counterclockwise (i think)
         case 0:
             rect_to_draw = pygame.Rect(
-                tyle_size * tyle_position[0] - x_of_display,
-                tyle_size * tyle_position[1] - y_of_display,
-                tyle_size + wall_width,
+                tile_size * tile_position[0] - x_of_display,
+                tile_size * tile_position[1] - y_of_display,
+                tile_size + wall_width,
                 wall_width,
             )
         case 1:
             rect_to_draw = pygame.Rect(
-                tyle_size * tyle_position[0] - x_of_display,
-                tyle_size * tyle_position[1] - y_of_display,
+                tile_size * tile_position[0] - x_of_display,
+                tile_size * tile_position[1] - y_of_display,
                 wall_width,
-                tyle_size + wall_width,
+                tile_size + wall_width,
             )
         case 2:
             rect_to_draw = pygame.Rect(
-                tyle_size * (tyle_position[0]) - x_of_display,
-                tyle_size * (tyle_position[1] + 1) - y_of_display,
-                tyle_size + wall_width,
+                tile_size * (tile_position[0]) - x_of_display,
+                tile_size * (tile_position[1] + 1) - y_of_display,
+                tile_size + wall_width,
                 wall_width,
             )
         case 3:
             rect_to_draw = pygame.Rect(
-                tyle_size * (tyle_position[0] + 1) - x_of_display,
-                tyle_size * (tyle_position[1]) - y_of_display,
+                tile_size * (tile_position[0] + 1) - x_of_display,
+                tile_size * (tile_position[1]) - y_of_display,
                 wall_width,
-                tyle_size + wall_width,
+                tile_size + wall_width,
             )
     pygame.draw.rect(screen, "white", rect_to_draw)
 
 
-def get_tyle_by_position_in_map(position: tuple):
+def get_tile_by_position(position: tuple):
     position_in_map = int(position[0] * position[1] / 2)
-    tyle = wall_map[position_in_map][1]
-    return tyle
+    tile = wall_map[position_in_map][1]
+    return tile
+
+
+def get_all_point_in_rect(position_start: tuple, position_end: tuple):
+    # could add position_end[1]+1 to include the point on the edge or not
+    all_point = []
+    for y in range(position_start[1], position_end[1]):
+        for x in range(position_start[0], position_end[0]):
+            all_point.append((x, y))
+    return all_point
+
+
+def get_tiles_at_screen():
+    x_of_display_in_tile = math.floor(x_of_display / tile_size)
+    y_of_display_in_tile = math.floor(y_of_display / tile_size)
+    return get_all_point_in_rect(
+        (x_of_display_in_tile, y_of_display_in_tile),
+        (
+            tile_width_of_screen + x_of_display_in_tile,
+            tile_height_of_screen + y_of_display_in_tile,
+        ),
+    )
 
 
 player = player_class()
 
+tile_width_of_screen = math.ceil(screen.get_width() / tile_size) + 1
+tile_height_of_screen = math.ceil(screen.get_height() / tile_size) + 1
 
 while running:
 
-    print(get_tyle_by_position_in_map((0, 0)))
+    number_of_tile_rendered = 0
 
-    for pos, letter in wall_map:
-        show_tyle_by_letter(
-            pos,
-            letter,
+    tiles_at_screen = get_tiles_at_screen()
+
+    for tile_position in tiles_at_screen:
+        show_tile_by_letter(
+            tile_position,
+            get_tile_by_position(tile_position),
+        )
+
+    if number_of_tile_rendered != tiles_at_screen.__len__():
+        raise ValueError(
+            "number_of_rendered_tiles can't be more than number of tiles_at_screen"
         )
 
     screen_follow_position(player.x, player.y, 0.75)
