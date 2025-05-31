@@ -22,6 +22,7 @@ class player_class:
     def __init__(self):
         self.x = screen.get_width() / 2
         self.y = screen.get_height() / 2
+
         self.angle = pygame.math.Vector2(-1, 0)
         self.max_speed = 7.5
         self.speed = pygame.math.Vector2(0, 0)
@@ -108,17 +109,18 @@ def screen_follow_position(x: float, y: float, strength: float):
     global y_of_display
     x_at_corner = x - screen.get_width() / 2
     y_at_corner = y - screen.get_height() / 2
+
     if x_of_display != x_at_corner or y_of_display != y_at_corner:
         distance_to_object = pygame.Vector2(
-            x - (x_of_display + x_at_corner),
-            y - (y_of_display + y_at_corner),
+            x_at_corner - x_of_display,
+            y_at_corner - y_of_display,
         )
 
-        x_of_display = x_of_display - (x_of_display - x_at_corner) * (
-            (1 / distance_to_object.length()) * strength
+        x_of_display = x_of_display + (x_at_corner - x_of_display) * (
+            distance_to_object.length() / screen.get_width() * strength
         )
-        y_of_display = y_of_display - (y_of_display - y_at_corner) * (
-            (1 / distance_to_object.length()) * strength
+        y_of_display = y_of_display + (y_at_corner - y_of_display) * (
+            distance_to_object.length() / screen.get_height() * strength
         )
 
 
@@ -141,11 +143,64 @@ def key_mapping(key: str):
     return key_map[key]
 
 
+type_of_wall = dict(
+    STRAIGHT_VERTICAL=("i", (1, 3)),
+    STRAIGHT_HORIZONTAL=("_", (0, 2)),
+    TURN_TOP_RIGHT=("p", (0, 2)),
+    TURN_TOP_LEFT=("o", (0, 2)),
+    TURN_DOWN_RIGHT=("m", (0, 2)),
+    TURN_DOWN_LEFT=("l", (0, 2)),
+    END_UP=("z", (1, 2, 3)),
+    END_LEFT=("q", (0, 2, 3)),
+    END_DOWN=("s", (0, 1, 3)),
+    END_RIGHT=("d", (0, 1, 2)),
+    NONE=("f", ()),
+    ALL=("g", (0, 1, 2, 3)),
+    TOP=("f", (0,)),
+    DOWN=("f", (2,)),
+    RIGHT=("f", (3,)),
+    LEFT=("f", (1,)),
+)
+
+
 case_size = 200
 wall_width = 20
+map_case_height = 50
+map_case_width = 50
 
 
-def show_wall_with_orientation(case_position: tuple, orientation: int):
+def generate_map():
+
+    wall_map = []
+
+    position = (0, 0)
+
+    for i in range(map_case_height):  # height
+        for _ in range(int(map_case_width / 2)):  # width
+            wall_map.append((position, generate_random_case()))
+            position = (position[0] + 2, position[1])
+
+        position = (i % 2, position[1] + 1)
+
+    return wall_map
+
+
+def generate_random_case():
+    list_of_type = list(type_of_wall)
+    return type_of_wall[list_of_type[random.randrange(list_of_type.__len__())]]
+
+
+wall_map = generate_map()
+
+
+def show_case_by_letter(case_position: tuple, letter: str):
+    wall_to_draw = letter[1]
+
+    for wall in wall_to_draw:
+        show_wall_by_orientation(case_position, wall)
+
+
+def show_wall_by_orientation(case_position: tuple, orientation: int):
 
     match orientation:  # 0 is up and it's going counterclockwise (i think)
         case 0:
@@ -176,113 +231,19 @@ def show_wall_with_orientation(case_position: tuple, orientation: int):
                 wall_width,
                 case_size + wall_width,
             )
-
     pygame.draw.rect(screen, "white", rect_to_draw)
-
-
-for pos, letter in wall_map:
-    show_case_by_letter(
-        pos,
-        letter,
-    )
-
-    TURN_TOP_RIGHT = ("p", (0, 2))
-    TURN_TOP_LEFT = ("o", (0, 2))
-    TURN_DOWN_RIGHT = ("m", (0, 2))
-    TURN_DOWN_LEFT = ("l", (0, 2))
-
-    END_UP = ("z", (1, 2, 3))
-    END_LEFT = ("q", (0, 2, 3))
-    END_DOWN = ("s", (0, 1, 3))
-    END_RIGHT = ("d", (0, 1, 2))
-
-    NONE = ("f", ())
-    ALL = ("g", (0, 1, 2, 3))
-
-    TOP = ("f", (0))
-    DOWN = ("f", (2))
-    RIGHT = ("f", (3))
-    LEFT = ("f", (1))
-
-    ALL_LETTER = "i_opmlzqsdfgujkhgf"
-
-
-def show_wall_with_letter(case_position: tuple, letter: str):
-    match letter:
-
-        case letter_for_wall.NONE:
-            wall_to_draw = ()
-
-        case letter_for_wall.ALL:
-            wall_to_draw = (0, 1, 2, 3)
-
-        case letter_for_wall.TOP:
-            wall_to_draw = (0,)
-        case letter_for_wall.DOWN:
-            wall_to_draw = (2,)
-        case letter_for_wall.LEFT:
-            wall_to_draw = (1,)
-        case letter_for_wall.RIGHT:
-            wall_to_draw = (3,)
-        case letter_for_wall.STRAIGHT_VERTICAL:
-            wall_to_draw = (1, 3)
-        case letter_for_wall.STRAIGHT_HORIZONTAL:
-            wall_to_draw = (0, 2)
-
-        case letter_for_wall.END_DOWN:
-            wall_to_draw = (0, 1, 3)
-        case letter_for_wall.END_UP:
-            wall_to_draw = (1, 2, 3)
-        case letter_for_wall.END_LEFT:
-            wall_to_draw = (0, 2, 3)
-        case letter_for_wall.END_RIGHT:
-            wall_to_draw = (0, 1, 2)
-
-        case letter_for_wall.TURN_DOWN_LEFT:
-            wall_to_draw = (0, 3)
-        case letter_for_wall.TURN_DOWN_RIGHT:
-            wall_to_draw = (0, 1)
-
-        case letter_for_wall.TURN_TOP_LEFT:
-            wall_to_draw = (2, 3)
-        case letter_for_wall.TURN_TOP_RIGHT:
-            wall_to_draw = (2, 1)
-    for wall in wall_to_draw:
-        show_wall_with_orientation(case_position, wall)
 
 
 player = player_class()
 
-position = (0, 0)
-
-wall_map = []
-map_height = 50
-map_width = 50
-
-for i in range(map_height):  # height
-    for o in range(int(map_width / 2)):  # width
-        wall_map.append(
-            (
-                position,
-                letter_for_wall.ALL_LETTER[
-                    random.randrange(letter_for_wall.ALL_LETTER.__len__())
-                ],
-            )
-        )
-        position = (position[0] + 2, position[1])
-    print(position[0] % 2)
-    position = (position[0] % 2 + 1, position[1] + 1)
-
 
 while running:
 
-    print(player.x, player.y)
     for pos, letter in wall_map:
-        show_wall_with_letter(
+        show_case_by_letter(
             pos,
             letter,
         )
-    position = (position[0] + 1, position[1])
 
     screen_follow_position(player.x, player.y, 0.75)
 
@@ -309,4 +270,5 @@ while running:
 
     player.x += player.speed[0]
     player.y += player.speed[1]
+
     clock.tick_busy_loop(max_fps)
