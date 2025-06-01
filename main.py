@@ -10,6 +10,7 @@ max_fps = 100
 
 
 background_sprite = pygame.image.load("d011d6bc1effc67ae5c74bbc5ce090c2.jpg")
+cat_sprite = pygame.image.load("cattt.jpg")
 pressed_key = []
 
 
@@ -19,8 +20,8 @@ y_of_display = 0
 
 class player_class:
     def __init__(self):
-        self.x = 0
-        self.y = 0
+        self.x = 125
+        self.y = 125
 
         self.angle = pygame.math.Vector2(-1, 0)
         self.max_speed = 7.5
@@ -33,12 +34,16 @@ class player_class:
         self.deceleration_per_tick = self.max_speed / self.tick_to_slow_down
 
         self.height = 100
-        self.rect = pygame.Rect(0, 0, self.height, self.height)
 
-        self.collide_box = self.rect
+        self.collide_box = pygame.Rect(
+            self.x + screen.get_width() / 2 - self.height / 2,
+            self.y + screen.get_height() / 2 - self.height / 2,
+            self.height,
+            self.height,
+        )
 
         self.sprite = pygame.transform.scale(
-            pygame.image.load("91ce98cec1df0f769321571724f1f312.jpg"),
+            pygame.image.load("cattt.jpg"),
             (self.height, self.height),
         )
 
@@ -68,13 +73,13 @@ class player_class:
         global moved_this_tick
         match direction:
             case "right":
-                self.speed[0] += self.acceleration_per_tick
+                self.speed.x += self.acceleration_per_tick
             case "left":
-                self.speed[0] -= self.acceleration_per_tick
+                self.speed.x -= self.acceleration_per_tick
             case "down":
-                self.speed[1] += self.acceleration_per_tick
+                self.speed.y += self.acceleration_per_tick
             case "up":
-                self.speed[1] -= self.acceleration_per_tick
+                self.speed.y -= self.acceleration_per_tick
         if self.speed != pygame.Vector2(0, 0):  # otherwise clamp raise an error
             self.speed = self.speed.clamp_magnitude(0, self.max_speed)
         moved_this_tick = True
@@ -82,41 +87,32 @@ class player_class:
     def decelerate(self, direction: str):
         if self.speed.length() < self.deceleration_per_tick and not moved_this_tick:
             self.speed = pygame.Vector2(0, 0)
-        else:
-            match direction:
-                case "right":
-                    if self.speed[0] > 0:
-
-                        self.speed[0] -= self.deceleration_per_tick
-                case "left":
-                    if self.speed[0] < 0:
-
-                        self.speed[0] += self.deceleration_per_tick
-                case "down":
-                    if self.speed[1] > 0:
-
-                        self.speed[1] -= self.deceleration_per_tick
-                case "up":
-                    if self.speed[1] < 0:
-
-                        self.speed[1] += self.deceleration_per_tick
-
-    def update_collision_box(self):
-        self.rect.x = self.x_relative
-        self.rect.y = self.y_relative
-        self.collide_box = self.rect
-        self.collide_box.x += self.speed.x
-        self.collide_box.y += self.speed.y
-        pygame.draw.rect(screen, "red", self.rect)
-
-    def handle_movement(self):
-        self.update_collision_box()
-        if collide_with_wall(self.rect):
+        if abs(self.speed.x) < (
+            self.deceleration_per_tick / 5
+        ):  # the divider is twikeable (but 5 is good)
             self.speed.x = 0
-        if collide_with_wall(self.rect):
+        if abs(self.speed.y) < (
+            self.deceleration_per_tick / 5
+        ):  # the divider is twikeable (but 5 is good)
             self.speed.y = 0
-        self.x += self.speed.x
-        self.y += self.speed.y
+
+        match direction:
+            case "right":
+                if self.speed.x > 0:
+
+                    self.speed.x -= self.deceleration_per_tick
+            case "left":
+                if self.speed.x < 0:
+
+                    self.speed.x += self.deceleration_per_tick
+            case "down":
+                if self.speed.y > 0:
+
+                    self.speed.y -= self.deceleration_per_tick
+            case "up":
+                if self.speed.y < 0:
+
+                    self.speed.y += self.deceleration_per_tick
 
 
 def get_coordinate_relative_to_screen(x, y):
@@ -151,8 +147,10 @@ def screen_follow_position(x: float, y: float, strength: float):
         )
 
 
-def show_image(sprite: pygame.Surface, x, y):
-    x_relative, y_relative = get_coordinate_relative_to_screen(x, y)
+def show_image(sprite: pygame.Surface, area: tuple | pygame.Rect):
+    if isinstance(area, pygame.Rect):
+        sprite = pygame.transform.scale(sprite, (area.width, area.height))
+    x_relative, y_relative = get_coordinate_relative_to_screen(area.x, area.y)
     pygame.Surface.blit(
         screen,
         sprite,
@@ -170,25 +168,42 @@ def key_mapping(key: str):
     return key_map[key]
 
 
-type_of_wall = dict(
-    STRAIGHT_VERTICAL=("i", (1, 3)),
-    STRAIGHT_HORIZONTAL=("_", (0, 2)),
-    TURN_TOP_RIGHT=("p", (1, 2)),
-    TURN_TOP_LEFT=("o", (2, 3)),
-    TURN_DOWN_RIGHT=("m", (0, 1)),
-    TURN_DOWN_LEFT=("l", (0, 3)),
-    END_UP=("z", (1, 2, 3)),
-    END_LEFT=("q", (0, 2, 3)),
-    END_DOWN=("s", (0, 1, 3)),
-    END_RIGHT=("d", (0, 1, 2)),
-    NONE=("f", ()),
-    ALL=("g", (0, 1, 2, 3)),
-    TOP=("f", (0,)),
-    DOWN=("f", (2,)),
-    RIGHT=("f", (3,)),
-    LEFT=("f", (1,)),
-)
+# STRAIGHT_VERTICAL   i   1 3
+# STRAIGHT_HORIZONTAL   _   0 2
+# TURN_TOP_RIGHT   p   1 2
+# TURN_TOP_LEFT   o   2 3
+# TURN_DOWN_RIGHT   m   0 1
+# TURN_DOWN_LEFT   l   0 3
+# END_UP   z   1 2 3
+# END_LEFT   q   0 2 3
+# END_DOWN   s   0 1 3
+# END_RIGHT   d   0 1 2
+# NONE   f
+# ALL   g   0 1 2 3
+# TOP   u   0
+# DOWN   j   2
+# RIGHT   h   3
+# LEFT   k   1
 
+
+letter_to_walls = {
+    "i": (1, 3),
+    "_": (0, 2),
+    "p": (1, 2),
+    "o": (2, 3),
+    "m": (0, 1),
+    "l": (0, 3),
+    "z": (1, 2, 3),
+    "q": (0, 2, 3),
+    "s": (0, 1, 3),
+    "d": (0, 1, 2),
+    "f": (),
+    "g": (0, 1, 2, 3),
+    "u": (0,),
+    "j": (2,),
+    "h": (3,),
+    "k": (1,),
+}
 
 tile_size = 200
 wall_width = 20
@@ -202,22 +217,61 @@ def generate_map():
 
     position = (0, 0)
 
-    for y in range(map_tile_height):  # height
-        for _ in range(int(map_tile_width / 2)):  # width
+    for _ in range(map_tile_height):  # height
+        for _ in range(map_tile_width):  # width
             wall_map.append((position, generate_random_tile()))
-            position = (position[0] + 2, position[1])
+            position = (position[0] + 1, position[1])
 
-        position = (y % 2, position[1] + 1)
+        position = (0, position[1] + 1)
 
     return wall_map
 
 
 def generate_random_tile():
-    list_of_type = list(type_of_wall)
-    return type_of_wall[list_of_type[random.randrange(list_of_type.__len__())]]
+    possibility = "ujhk_if"  # only tile with 2 walls or less
+    return possibility[random.randrange(possibility.__len__())]
 
 
 wall_map = generate_map()
+print(wall_map)
+wall_map = [
+    ((0, 0), ("i", (1, 3))),
+    ((0, 2), ("_", (0, 2))),
+    ((0, 2), ("_", (0, 2))),
+    ((0, 4), ("_", (0, 2))),
+    ((0, 4), ("_", (0, 2))),
+    ((0, 6), ("_", (0, 2))),
+    ((0, 6), ("_", (0, 2))),
+    ((0, 8), ("_", (0, 2))),
+    ((0, 8), ("_", (0, 2))),
+    ((1, 1), ("k", (1,))),
+    ((1, 1), ("_", (0, 2))),
+    ((1, 3), ("_", (0, 2))),
+    ((1, 3), ("_", (0, 2))),
+    ((1, 5), ("_", (0, 2))),
+    ((1, 5), ("k", (1,))),
+    ((1, 7), ("_", (0, 2))),
+    ((1, 7), ("_", (0, 2))),
+    ((1, 9), ("i", (1, 3))),
+    ((2, 0), ("i", (1, 3))),
+    ((2, 2), ("m", (0, 1))),
+    ((2, 2), ("_", (0, 2))),
+    ((2, 4), ("_", (0, 2))),
+    ((2, 4), ("_", (0, 2))),
+    ((2, 6), ("i", (1, 3))),
+    ((2, 6), ("m", (0, 1))),
+    ((2, 8), ("_", (0, 2))),
+    ((2, 8), ("h", (3,))),
+    ((3, 1), ("i", (1, 3))),
+    ((3, 1), ("k", (1,))),
+    ((3, 3), ("_", (0, 2))),
+    ((3, 3), ("_", (0, 2))),
+    ((3, 5), ("l", (0, 3))),
+    ((3, 5), ("i", (1, 3))),
+    ((3, 7), ("i", (1, 3))),
+    ((3, 7), ("_", (0, 2))),
+    ((3, 9), ("o", (2, 3))),
+]
 
 
 def get_walls_by_position(tile_position: tuple):
@@ -320,11 +374,27 @@ def collide_with_wall(
     rects_to_collide_with: list = walls_rendered,
 ):
 
-    print(collide_box.collidelist(rects_to_collide_with))
+    print(player.collide_box, walls_rendered)
     if collide_box.collidelist(rects_to_collide_with) == -1:
         return False
     else:
+        print("touché")
         return True
+
+
+def closest_to(number: float, first_number: float, second_number: float):
+    if abs(number - first_number) == abs(number - second_number):
+        return 0
+    elif abs(number - first_number) < abs(number - second_number):
+        return first_number
+    else:
+        return second_number
+
+
+# set_tile_in_map((0, 1), type_of_wall["NONE"])
+# set_tile_in_map((0, 2), type_of_wall["NONE"])
+# set_tile_in_map((1, 1), type_of_wall["NONE"])
+# set_tile_in_map((1, 2), type_of_wall["NONE"])
 
 
 while running:
@@ -332,11 +402,6 @@ while running:
     walls_rendered = []
 
     number_of_tile_rendered = 0
-
-    set_tile_in_map((0, 1), type_of_wall["NONE"])
-    set_tile_in_map((0, 2), type_of_wall["NONE"])
-    set_tile_in_map((1, 1), type_of_wall["NONE"])
-    set_tile_in_map((1, 2), type_of_wall["NONE"])
 
     tiles_at_screen = get_tiles_at_screen()
 
@@ -346,10 +411,6 @@ while running:
         )  # += used to merge the two lists insted of adding a list in a list with append
 
     draw_all_wall(walls_rendered)
-
-    player.rect = set_rect_center_at(
-        player.rect, player.x - x_of_display, player.y - y_of_display
-    )
 
     if number_of_tile_rendered != tiles_at_screen.__len__():
         raise ValueError(
@@ -375,11 +436,52 @@ while running:
         not_pressed_key.pop(not_pressed_key.index(key))
 
     for key in not_pressed_key:
+
         player.decelerate(key_mapping(key))
 
-    player.handle_movement()
+    if player.speed.x != 0:
+
+        player.collide_box.x = (
+            player.x_relative
+            + closest_to(player.speed.x, player.max_speed, -player.max_speed)
+            - player.height / 2
+        )
+        player.collide_box.y = (
+            player.y_relative
+            - player.height / 2
+            + closest_to(player.speed.x, player.max_speed, -player.max_speed)
+        )
+
+        if player.collide_box.collidelist(walls_rendered) == -1:
+            player.x += player.speed.x
+        else:
+            player.speed.x = 0
+
+    if player.speed.y != 0:
+
+        player.collide_box.x = (
+            player.x_relative
+            + closest_to(player.speed.x, player.max_speed, -player.max_speed)
+            - player.height / 2
+        )
+        player.collide_box.y = (
+            player.y_relative
+            - player.height / 2
+            + closest_to(player.speed.x, player.max_speed, -player.max_speed)
+        )
+
+        if player.collide_box.collidelist(walls_rendered) == -1:
+            player.y += player.speed.y
+        else:
+            player.speed.y = 0
+
+    print(
+        player.speed,
+        closest_to(player.speed.x, player.max_speed, -player.max_speed),
+        # player.collide_box.collidelist(walls_rendered),
+        pygame.draw.rect(screen, "red", player.collide_box),
+    )
 
     pygame.display.flip()
     screen.fill("black")
-
     clock.tick_busy_loop(max_fps)
