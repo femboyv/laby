@@ -205,6 +205,12 @@ letter_to_walls = {
     "k": (1,),
 }
 
+
+def get_walls_by_letter(letter: str) -> tuple:
+
+    return letter_to_walls[letter]
+
+
 tile_size = 200
 wall_width = 20
 map_tile_height = 50
@@ -233,61 +239,101 @@ def generate_random_tile():
 
 
 wall_map = generate_map()
-print(wall_map)
+
 wall_map = [
-    ((0, 0), ("i", (1, 3))),
-    ((0, 2), ("_", (0, 2))),
-    ((0, 2), ("_", (0, 2))),
-    ((0, 4), ("_", (0, 2))),
-    ((0, 4), ("_", (0, 2))),
-    ((0, 6), ("_", (0, 2))),
-    ((0, 6), ("_", (0, 2))),
-    ((0, 8), ("_", (0, 2))),
-    ((0, 8), ("_", (0, 2))),
-    ((1, 1), ("k", (1,))),
-    ((1, 1), ("_", (0, 2))),
-    ((1, 3), ("_", (0, 2))),
-    ((1, 3), ("_", (0, 2))),
-    ((1, 5), ("_", (0, 2))),
-    ((1, 5), ("k", (1,))),
-    ((1, 7), ("_", (0, 2))),
-    ((1, 7), ("_", (0, 2))),
-    ((1, 9), ("i", (1, 3))),
-    ((2, 0), ("i", (1, 3))),
-    ((2, 2), ("m", (0, 1))),
-    ((2, 2), ("_", (0, 2))),
-    ((2, 4), ("_", (0, 2))),
-    ((2, 4), ("_", (0, 2))),
-    ((2, 6), ("i", (1, 3))),
-    ((2, 6), ("m", (0, 1))),
-    ((2, 8), ("_", (0, 2))),
-    ((2, 8), ("h", (3,))),
-    ((3, 1), ("i", (1, 3))),
-    ((3, 1), ("k", (1,))),
-    ((3, 3), ("_", (0, 2))),
-    ((3, 3), ("_", (0, 2))),
-    ((3, 5), ("l", (0, 3))),
-    ((3, 5), ("i", (1, 3))),
-    ((3, 7), ("i", (1, 3))),
-    ((3, 7), ("_", (0, 2))),
-    ((3, 9), ("o", (2, 3))),
+    ((0, 0), "i"),
+    ((0, 1), "m"),
+    ((0, 2), "_"),
+    ((0, 3), "_"),
+    ((0, 4), "_"),
+    ((0, 5), "_"),
+    ((0, 6), "_"),
+    ((0, 7), "_"),
+    ((0, 8), "_"),
+    ((0, 9), "_"),
+    ((0, 10), "_"),
+    ((0, 11), "u"),
+    ((0, 12), "_"),
+    ((0, 13), "_"),
+    ((0, 14), "_"),
+    ((0, 15), "_"),
+    ((0, 16), "_"),
+    ((0, 17), "l"),
+    ((1, 0), "i"),
+    ((1, 1), "k"),
+    ((1, 2), "_"),
+    ((1, 3), "_"),
+    ((1, 4), "_"),
+    ((1, 5), "_"),
+    ((1, 6), "_"),
+    ((1, 7), "_"),
+    ((1, 8), "_"),
+    ((1, 9), "_"),
+    ((1, 10), "_"),
+    ((1, 11), "k"),
+    ((1, 12), "_"),
+    ((1, 13), "_"),
+    ((1, 14), "_"),
+    ((1, 15), "_"),
+    ((1, 16), "l"),
+    ((1, 17), "i"),
+    ((2, 0), "i"),
+    ((2, 1), "i"),
+    ((2, 2), "m"),
+    ((2, 3), "_"),
+    ((2, 4), "_"),
+    ((2, 5), "_"),
+    ((2, 6), "_"),
+    ((2, 7), "_"),
+    ((2, 8), "_"),
+    ((2, 9), "l"),
+    ((2, 10), "i"),
+    ((2, 11), "i"),
+    ((2, 12), "m"),
+    ((2, 13), "_"),
+    ((2, 14), "_"),
+    ((2, 15), "_"),
+    ((2, 16), "h"),
+    ((2, 17), "i"),
+    ((3, 0), "i"),
+    ((3, 1), "s"),
+    ((3, 2), "h"),
+    ((3, 3), "_"),
+    ((3, 4), "_"),
+    ((3, 5), "_"),
+    ((3, 6), "_"),
+    ((3, 7), "_"),
+    ((3, 8), "l"),
+    ((3, 9), "i"),
+    ((3, 10), "i"),
+    ((3, 11), "i"),
+    ((3, 12), "i"),
+    ((3, 13), "d"),
+    ((3, 14), "_"),
+    ((3, 15), "_"),
+    ((3, 16), "o"),
+    ((3, 17), "i"),
 ]
 
 
-def get_walls_by_position(tile_position: tuple):
-    global number_of_tile_rendered
-    letter = get_tile_by_position(tile_position)
-    walls_of_tile = []
+def get_murs_of_coordinate(tile_position: tuple):
 
-    wall_to_draw = letter[1]
+    global number_of_tile_rendered
+    letter = get_tile_by_coordinate(tile_position)
+
+    murs_of_tile = []
+
+    walls_to_draw = get_walls_by_letter(letter)
 
     number_of_tile_rendered += 1
-    for wall in wall_to_draw:
-        walls_of_tile.append(get_walls_by_letter(tile_position, wall))
-    return walls_of_tile
+
+    for wall in walls_to_draw:
+
+        murs_of_tile.append(get_mur_from_wall(tile_position, wall))
+    return murs_of_tile
 
 
-def get_walls_by_letter(tile_position: tuple, orientation: int):
+def get_mur_from_wall(tile_position: tuple, orientation: int):
 
     match orientation:  # 0 is up and it's going counterclockwise (i think)
         case 0:
@@ -322,9 +368,10 @@ def get_walls_by_letter(tile_position: tuple, orientation: int):
     return rect_to_draw
 
 
-def get_tile_by_position(position: tuple):
-    position_in_map = int(position[0] * position[1] / 2)
-    tile = wall_map[position_in_map][1]
+def get_tile_by_coordinate(coordinate: tuple):
+    coordinate_in_map = int(coordinate[0] * coordinate[1] / 2)
+    tile = wall_map[coordinate_in_map][1]
+
     return tile
 
 
@@ -337,8 +384,8 @@ def get_all_point_in_rect(position_start: tuple, position_end: tuple):
     return all_point
 
 
-tile_width_of_screen = math.ceil(screen.get_width() / tile_size) + 1
-tile_height_of_screen = math.ceil(screen.get_height() / tile_size) + 1
+width_of_screen_in_tile = math.ceil(screen.get_width() / tile_size) + 1
+height_of_screen_in_tile = math.ceil(screen.get_height() / tile_size) + 1
 
 
 def get_tiles_at_screen():
@@ -347,8 +394,8 @@ def get_tiles_at_screen():
     return get_all_point_in_rect(
         (x_of_display_in_tile, y_of_display_in_tile),
         (
-            tile_width_of_screen + x_of_display_in_tile,
-            tile_height_of_screen + y_of_display_in_tile,
+            width_of_screen_in_tile + x_of_display_in_tile,
+            height_of_screen_in_tile + y_of_display_in_tile,
         ),
     )
 
@@ -366,15 +413,14 @@ def set_tile_in_map(position: tuple, tile: tuple):
     wall_map[position_in_map] = (position, tile)
 
 
-walls_rendered = []
+murs_rendered = []
 
 
 def collide_with_wall(
     collide_box: pygame.Rect = player.collide_box,
-    rects_to_collide_with: list = walls_rendered,
+    rects_to_collide_with: list = murs_rendered,
 ):
 
-    print(player.collide_box, walls_rendered)
     if collide_box.collidelist(rects_to_collide_with) == -1:
         return False
     else:
@@ -399,18 +445,19 @@ def closest_to(number: float, first_number: float, second_number: float):
 
 while running:
 
-    walls_rendered = []
+    murs_rendered = []
 
     number_of_tile_rendered = 0
 
     tiles_at_screen = get_tiles_at_screen()
 
     for tile_position in tiles_at_screen:
-        walls_rendered += get_walls_by_position(
+
+        murs_rendered += get_murs_of_coordinate(
             tile_position
         )  # += used to merge the two lists insted of adding a list in a list with append
 
-    draw_all_wall(walls_rendered)
+    draw_all_wall(murs_rendered)
 
     if number_of_tile_rendered != tiles_at_screen.__len__():
         raise ValueError(
@@ -452,7 +499,7 @@ while running:
             + closest_to(player.speed.x, player.max_speed, -player.max_speed)
         )
 
-        if player.collide_box.collidelist(walls_rendered) == -1:
+        if player.collide_box.collidelist(murs_rendered) == -1:
             player.x += player.speed.x
         else:
             player.speed.x = 0
@@ -470,17 +517,10 @@ while running:
             + closest_to(player.speed.x, player.max_speed, -player.max_speed)
         )
 
-        if player.collide_box.collidelist(walls_rendered) == -1:
+        if player.collide_box.collidelist(murs_rendered) == -1:
             player.y += player.speed.y
         else:
             player.speed.y = 0
-
-    print(
-        player.speed,
-        closest_to(player.speed.x, player.max_speed, -player.max_speed),
-        # player.collide_box.collidelist(walls_rendered),
-        pygame.draw.rect(screen, "red", player.collide_box),
-    )
 
     pygame.display.flip()
     screen.fill("black")
