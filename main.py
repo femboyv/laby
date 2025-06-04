@@ -115,6 +115,68 @@ class player_class:
                     self.speed.y += self.deceleration_per_tick
 
 
+class tile_class:
+    def __init___(self, location: tuple, letter: str):
+        self.location = location
+        self.letter = letter
+        self.murs = None
+        self.walls = None
+
+    def get_walls(self) -> tuple:
+        if self.walls != None:
+            return self.walls
+        else:
+            try:
+                self.walls = letter_to_walls[self.letter]
+                return letter_to_walls[self.letter]
+            except KeyError:
+                self.walls = letter_to_walls["f"]
+                return letter_to_walls["f"]  #  f for Null
+
+    def get_murs(self):
+
+        if self.murs != None:
+            return self.murs
+        else:
+            murs = []
+            if self.walls == None:
+                self.get_walls()
+            for orientation in self.walls:
+
+                match orientation:  # 0 is up and it's going counterclockwise (i think(i'm  actually pretty sure))
+                    case 0:
+                        rect_to_draw = pygame.Rect(
+                            tile_size * tile_position[0] - x_of_display,
+                            tile_size * tile_position[1] - y_of_display,
+                            tile_size + wall_width,
+                            wall_width,
+                        )
+                    case 1:
+                        rect_to_draw = pygame.Rect(
+                            tile_size * tile_position[0] - x_of_display,
+                            tile_size * tile_position[1] - y_of_display,
+                            wall_width,
+                            tile_size + wall_width,
+                        )
+                    case 2:
+                        rect_to_draw = pygame.Rect(
+                            tile_size * (tile_position[0]) - x_of_display,
+                            tile_size * (tile_position[1] + 1) - y_of_display,
+                            tile_size + wall_width,
+                            wall_width,
+                        )
+                    case 3:
+                        rect_to_draw = pygame.Rect(
+                            tile_size * (tile_position[0] + 1) - x_of_display,
+                            tile_size * (tile_position[1]) - y_of_display,
+                            wall_width,
+                            tile_size + wall_width,
+                        )
+                murs.append(rect_to_draw)
+            self.murs = murs
+            return murs
+
+
 def get_coordinate_relative_to_screen(x, y):
     x_relative = x - x_of_display
     y_relative = y - y_of_display
@@ -166,24 +228,6 @@ key_map = dict(z="up", s="down", d="right", q="left")
 
 def key_mapping(key: str):
     return key_map[key]
-
-
-# STRAIGHT_VERTICAL   i   1 3
-# STRAIGHT_HORIZONTAL   _   0 2
-# TURN_TOP_RIGHT   p   1 2
-# TURN_TOP_LEFT   o   2 3
-# TURN_DOWN_RIGHT   m   0 1
-# TURN_DOWN_LEFT   l   0 3
-# END_UP   z   1 2 3
-# END_LEFT   q   0 2 3
-# END_DOWN   s   0 1 3
-# END_RIGHT   d   0 1 2
-# NONE   f
-# ALL   g   0 1 2 3
-# TOP   u   0
-# DOWN   j   2
-# RIGHT   h   3
-# LEFT   k   1
 
 
 letter_to_walls = {
