@@ -7,7 +7,7 @@ pygame.init()
 screen = pygame.display.set_mode((1280, 720), vsync=1)
 clock = pygame.time.Clock()
 running = True
-max_fps = 100
+fps = 100
 
 
 background_sprite = pygame.image.load("d011d6bc1effc67ae5c74bbc5ce090c2.jpg")
@@ -28,38 +28,67 @@ class player_class:
         self.max_speed = 5
         self.speed = pygame.math.Vector2(0, 0)
 
-        self.tick_to_reach_max_speed = max_fps / 2
-        self.tick_to_slow_down = max_fps / 5
+        self.tick_to_reach_max_speed = fps / 2
+        self.tick_to_slow_down = fps / 5
 
         self.acceleration_per_tick = self.max_speed / self.tick_to_reach_max_speed
         self.deceleration_per_tick = self.max_speed / self.tick_to_slow_down
 
-        self.height = 100
+        self.height = 200
+        self.width = 100
 
+        self.set_collide_box_to_default()
+
+        self.number_of_sprite = 5
+        self.sprites = []
+        for sprite_number in range(self.number_of_sprite + 1):
+            self.sprites.append(
+                pygame.image.load(
+                    "character_frame\\pixil-frame-" + str(sprite_number) + ".png"
+                )
+            )
+        self.sprite_to_render_number = 0  # tell what sprite is rendered
+        self.time_per_sprite = 0.3
+        self.tick_per_sprite = self.time_per_sprite * fps
+        self.tick_since_change_of_sprite = 0
+
+    def set_collide_box_to_default(self):
         self.collide_box = pygame.Rect(
-            self.x + screen.get_width() / 2 - self.height / 2,
-            self.y + screen.get_height() / 2 - self.height / 2,
-            self.height,
-            self.height,
+            self.x - x_of_display - self.width / 2 + 1,
+            self.y - y_of_display - self.height / 2 + 1,
+            self.width - 2,
+            self.height
+            - 2,  # -2 and +1 to have a collide box slighly smaller than the player sprite
         )
 
-        self.sprite = pygame.transform.scale(
-            pygame.image.load("cattt.jpg"),
-            (self.height, self.height),
-        )
-
-    def draw_self(
+    def draw_animation(
         self,
-        sprite: pygame.Surface,
+        sprites: list,
+        sprite_to_render: int,
         angle: pygame.math.Vector2,
         x: float,
         y: float,
     ):
+        sprite = sprites[sprite_to_render]
+        if self.tick_since_change_of_sprite != self.tick_per_sprite:
+            self.tick_since_change_of_sprite += 1
+
+        elif self.sprite_to_render_number != self.number_of_sprite:
+            self.sprite_to_render_number += 1
+            self.tick_since_change_of_sprite = 0
+
+        else:
+            self.sprite_to_render_number = 0
+            self.tick_since_change_of_sprite = 0
+
         self.x_relative, self.y_relative = get_coordinate_relative_to_screen(x, y)
 
-        resized_sprite = pygame.transform.rotate(
-            sprite,
-            pygame.Vector2.as_polar(angle)[1] * -1 + 180,
+        resized_sprite = pygame.transform.scale(
+            pygame.transform.rotate(
+                sprite,
+                pygame.Vector2.as_polar(angle)[1] * -1 + 180,
+            ),
+            (self.width, self.height),
         )  # *-1 pour aller de clockwise à counterclockwise
         pygame.Surface.blit(
             screen,
@@ -669,6 +698,8 @@ while running:
 
         number_of_tile_rendered = 0
 
+        screen_follow_position(player.x, player.y, 0.75)
+
         tiles_at_screen = get_tiles_at_screen()
         for tile_position in tiles_at_screen:
 
@@ -683,9 +714,13 @@ while running:
                 "number_of_rendered_tiles can't be more than number of tiles_at_screen"
             )
 
-        screen_follow_position(player.x, player.y, 0.75)
-
-        player.draw_self(player.sprite, player.angle, player.x, player.y)
+        player.draw_animation(
+            player.sprites,
+            player.sprite_to_render_number,
+            player.angle,
+            player.x,
+            player.y,
+        )
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -710,25 +745,46 @@ while running:
         for key in not_pressed_key:
             player.decelerate(key_mapping(key))
 
-        if player.speed.x != 0:
-
+        if player.speed.x == 0:
+            player.set_collide_box_to_default()
+        else:
             player.collide_box.x = (
                 player.x_relative
                 + closest_to(
                     player.speed.x, player.max_speed * 2.1, -player.max_speed * 2.1
                 )
-                - (player.height / 2)
-            )
-            player.collide_box.y = player.y_relative - player.height / 2
+                - (player.width / 2)
+            ) + 1  # +1 because the collide box is slighly smaller than the player
+            player.collide_box.y = player.y_relative - player.height / 2 + 1
 
-            if player.collide_box.collidelist(murs_rendered) == -1:
+            index_of_mur_colliding = player.collide_box.collidelist(murs_rendered)
+
+            if index_of_mur_colliding == -1:
                 player.x += player.speed.x
+
             else:
                 player.speed.x = 0
 
-        if player.speed.y != 0:
+                mur_colliding = murs_rendered[index_of_mur_colliding]
+                mur_colliding: pygame.Rect
 
-            player.collide_box.x = player.x_relative - player.height / 2
+                if mur_colliding.x > player.x_relative:
+
+                    player.x = mur_colliding.x + x_of_display - player.width / 2
+                else:
+
+                    player.x = (
+                        mur_colliding.x
+                        + x_of_display
+                        + mur_colliding.width
+                        + player.width / 2
+                    )
+
+        if player.speed.y == 0:
+            player.set_collide_box_to_default()
+
+        else:
+            player.collide_box.x = player.x_relative - player.width / 2 + 1
 
             player.collide_box.y = (
                 player.y_relative
@@ -736,12 +792,29 @@ while running:
                 + closest_to(
                     player.speed.y, player.max_speed * 2.1, -player.max_speed * 2.1
                 )
-            )
+                + 1
+            )  # +1 because the collide box is slighly smaller than the player
 
-            if player.collide_box.collidelist(murs_rendered) == -1:
+            index_of_mur_colliding = player.collide_box.collidelist(murs_rendered)
+
+            if index_of_mur_colliding == -1:
                 player.y += player.speed.y
             else:
                 player.speed.y = 0
+
+                mur_colliding = murs_rendered[index_of_mur_colliding]
+                mur_colliding: pygame.Rect
+
+                if mur_colliding.y > player.y_relative:
+
+                    player.y = mur_colliding.y + y_of_display - player.height / 2
+                else:
+
+                    player.y = (
+                        (mur_colliding.y + y_of_display)
+                        + mur_colliding.height
+                        + player.height / 2
+                    )
 
     if map_view:
         pygame.Surface.blit(
@@ -763,7 +836,7 @@ while running:
 
     pygame.display.flip()
     screen.fill("black")
-    clock.tick_busy_loop(max_fps)
+    clock.tick_busy_loop(fps)
 
 """
 bug report:
