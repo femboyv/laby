@@ -91,3 +91,17 @@ def convert_script_to_world(script=str):
 
 
 convert_script_to_world(script)
+
+
+def delete_multiple_elements_from_list(list: list, indexs: list) -> list:
+    for i, index in enumerate(indexs):
+        list.pop(index - i)
+    return list
+
+
+a_list = list(range(40))
+print(a_list)
+
+index_to_remove = [12, 20]
+
+print(delete_multiple_elements_from_list(a_list, index_to_remove))

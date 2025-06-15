@@ -158,13 +158,15 @@ class player_class:
 
 
 class tile_class:
-    def __init__(self, coordinate: tuple, letter: str):
+    def __init__(self, coordinate: tuple, letter: str = "g", generated: bool = False):
         self.loaded = False
         self.coordinate = coordinate
+
         self.letter = letter
+
         self.murs = None
-        self.walls = None
-        self.generated = False
+        self.walls = self.get_walls_by_letter()
+        self.generated = generated
 
     def __str__(self):
         return f"{self.coordinate},{self.letter}"
@@ -173,13 +175,7 @@ class tile_class:
         # repr and str are the same because repr is used in iterables (list) and str when it's only called once
         return str(self)
 
-    def loads(self):
-        if not self.loaded:
-            self.get_walls()
-            self.get_murs()
-            self.loaded = True
-
-    def get_walls(self) -> tuple:
+    def get_walls_by_letter(self) -> tuple:
         self.walls: tuple
         try:
             self.walls = letter_to_walls[self.letter]
@@ -192,7 +188,7 @@ class tile_class:
 
         murs = []
         if self.walls == None:
-            self.get_walls()
+            self.get_walls_by_letter()
         for orientation in self.walls:
 
             match orientation:  # 0 is up and it's going counterclockwise (i think(i'm  actually pretty sure))
@@ -249,9 +245,7 @@ class tile_class:
 
     def choose_random_valid_tile(self):
         not_generated_neighbour_tiles = self.get_not_generated_neighbour_tiles()
-        not_generated_neighbour_tiles_length = (
-            self.get_not_generated_neighbour_tiles().__len__()
-        )
+        not_generated_neighbour_tiles_length = not_generated_neighbour_tiles.__len__()
 
         if not_generated_neighbour_tiles_length == 0:
             return None
@@ -267,6 +261,7 @@ class tile_class:
     def buldozer_to_tile(self, other_tile):
         tile = other_tile  # other_tile can't be recognized as tile_class
         tile: tile_class
+
         if tile in self.get_neighbour_tiles():
             self.destroy_wall(self.get_direction_to_tile(tile))
             tile.destroy_wall(get_opposite_wall(self.get_direction_to_tile(tile)))
@@ -278,7 +273,7 @@ class tile_class:
         if self.walls is not None:
             list_self_walls = list(self.walls)
 
-            if wall in self.get_walls():
+            if wall in self.get_walls_by_letter():
                 list_self_walls.remove(wall)
 
             self.walls = tuple(list_self_walls)
@@ -314,6 +309,10 @@ class tile_class:
             self.letter = "f"
         else:
             self.letter = walls_to_letter[self.walls]
+
+
+def get_emtpy_tile_class(coordinate):
+    return tile_class(coordinate, "f", True)
 
 
 # screen shit
@@ -589,9 +588,40 @@ def check_for_max_width_and_height_of_script(map) -> tuple[int, int]:
 def souris_buldozering():
 
     tile_of_souris = get_tile_by_coordinate((0, 0))
+    tile_of_souris: tile_class
+    tile_of_souris.generated = True
+    possible_tile_not_blocked = [tile_of_souris]
+    possible_tile_not_blocked: list[tile_class]
 
-    tile_of_souris.buldozer_to_tile(get_tile_by_coordinate((1, 0)))
-    print(tile_of_souris.get_walls())
+    number_of_case = world_width_in_tile * world_height_in_tile
+
+    for _ in range(number_of_case):
+
+        tile_to_go = tile_of_souris.choose_random_valid_tile()
+        tile_to_go: tile_class
+
+        if tile_to_go is not None:  # not blocked ("normal")
+            if tile_to_go.get_not_generated_neighbour_tiles().__len__() > 1:
+                possible_tile_not_blocked.append(tile_to_go)
+
+        else:  # blocked
+
+            for i, tile_to_test in enumerate(possible_tile_not_blocked):
+
+                if tile_to_test.get_not_generated_neighbour_tiles().__len__() != 0:
+                    tile_of_souris = tile_to_test
+                    tile_to_go = tile_to_test.choose_random_valid_tile()
+                    possible_tile_not_blocked = possible_tile_not_blocked[i:]
+
+                    break
+
+            if tile_of_souris.get_not_generated_neighbour_tiles().__len__() == 1:
+                possible_tile_not_blocked.pop(0)
+            if tile_to_go is None:  # at end
+                break
+        tile_of_souris.buldozer_to_tile(tile_to_go)
+        tile_to_go.generated = True
+        tile_of_souris = tile_to_go
 
 
 def get_default_map(width: int = 50, height: int = 50):
@@ -610,6 +640,12 @@ def get_default_map(width: int = 50, height: int = 50):
 ### general function ###
 
 
+def delete_multiple_elements_from_list(list: list, indexs: list) -> list:
+    for i, index in enumerate(indexs):
+        list.pop(index - i)
+    return list
+
+
 def get_tile_by_coordinate(coordinate: tuple) -> tile_class:
     if coordinate[0] >= 0 and coordinate[1] >= 0:
         coordinate_in_map = int(coordinate[0] + coordinate[1] * world_width_in_tile)
@@ -619,14 +655,14 @@ def get_tile_by_coordinate(coordinate: tuple) -> tile_class:
             tile: tile_class
         except IndexError:
 
-            return tile_class(coordinate, "f")  # "f" for blank
+            return get_emtpy_tile_class(coordinate)
 
         if (  # when outside of the map
             coordinate[0] > world_width_in_tile - 1
             or coordinate[1] > world_height_in_tile - 1
         ):
 
-            return tile_class(coordinate, "f")  # "f" for blank
+            return get_emtpy_tile_class(coordinate)
 
         if tile.coordinate != coordinate:
             raise ValueError(
@@ -641,7 +677,7 @@ def get_tile_by_coordinate(coordinate: tuple) -> tile_class:
 
         return tile
     else:
-        return tile_class(coordinate, "f")
+        return get_emtpy_tile_class(coordinate)
 
 
 def get_all_point_in_rect(position_start: tuple, position_end: tuple):
