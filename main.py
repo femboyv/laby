@@ -590,8 +590,8 @@ def souris_buldozering():
     tile_of_souris = get_tile_by_coordinate((0, 0))
     tile_of_souris: tile_class
     tile_of_souris.generated = True
-    possible_tile_not_blocked = [tile_of_souris]
-    possible_tile_not_blocked: list[tile_class]
+    possibles_tiles_not_blocked = [tile_of_souris]
+    possibles_tiles_not_blocked: list[tile_class]
 
     number_of_case = world_width_in_tile * world_height_in_tile
 
@@ -602,26 +602,38 @@ def souris_buldozering():
 
         if tile_to_go is not None:  # not blocked ("normal")
             if tile_to_go.get_not_generated_neighbour_tiles().__len__() > 1:
-                possible_tile_not_blocked.append(tile_to_go)
+                possibles_tiles_not_blocked.append(tile_to_go)
 
         else:  # blocked
 
-            for i, tile_to_test in enumerate(possible_tile_not_blocked):
+            not_blocked_tile, index_of_not_blocked_tile = get_not_blocked_tile_in_list(
+                possibles_tiles_not_blocked
+            )
+            if not_blocked_tile is None:  # at end
+                break
 
-                if tile_to_test.get_not_generated_neighbour_tiles().__len__() != 0:
-                    tile_of_souris = tile_to_test
-                    tile_to_go = tile_to_test.choose_random_valid_tile()
-                    possible_tile_not_blocked = possible_tile_not_blocked[i:]
+            tile_of_souris = not_blocked_tile
+            tile_to_go = not_blocked_tile.choose_random_valid_tile()
 
-                    break
+            possibles_tiles_not_blocked = possibles_tiles_not_blocked[
+                index_of_not_blocked_tile:
+            ]
 
             if tile_of_souris.get_not_generated_neighbour_tiles().__len__() == 1:
-                possible_tile_not_blocked.pop(0)
-            if tile_to_go is None:  # at end
-                break
+                possibles_tiles_not_blocked.pop(0)
+
         tile_of_souris.buldozer_to_tile(tile_to_go)
         tile_to_go.generated = True
         tile_of_souris = tile_to_go
+
+
+def get_not_blocked_tile_in_list(
+    list: list[tile_class],
+) -> tuple[tile_class, int] | None:
+    for i, tile_to_test in enumerate(list):
+        if tile_to_test.get_not_generated_neighbour_tiles().__len__() != 0:
+            return tile_to_test, i
+    return None, i  # if there's no valid tile
 
 
 def get_default_map(width: int = 50, height: int = 50):
