@@ -24,6 +24,12 @@ fps = 100
 
 background_sprite = pygame.image.load("d011d6bc1effc67ae5c74bbc5ce090c2.jpg")
 cat_sprite = pygame.image.load("cattt.jpg")
+
+
+power_of_light = 10
+light = pygame.image.load("circle.png")
+light = pygame.transform.scale_by(light, power_of_light)
+
 pressed_key = []
 
 
@@ -37,17 +43,17 @@ class player_class:
         self.y = 125
 
         self.angle = pygame.math.Vector2(-1, 0)
-        self.max_speed = 5
+        self.max_speed = 2
         self.speed = pygame.math.Vector2(0, 0)
 
-        self.tick_to_reach_max_speed = fps / 2
-        self.tick_to_slow_down = fps / 5
+        self.tick_to_reach_max_speed = 1
+        self.tick_to_slow_down = 1
 
         self.acceleration_per_tick = self.max_speed / self.tick_to_reach_max_speed
         self.deceleration_per_tick = self.max_speed / self.tick_to_slow_down
 
-        self.height = 30
-        self.width = 15
+        self.height = 60
+        self.width = 30
 
         self.set_collide_box_to_default()
 
@@ -316,6 +322,20 @@ def get_emtpy_tile_class(coordinate):
 
 
 # screen shit
+
+
+def apply_light_system():
+    filter_surface = pygame.Surface(screen.get_size())
+    filter_surface.fill("white")
+
+    filter_surface.blit(
+        light,
+        (
+            player.x_relative - light.get_width() / 2,
+            player.y_relative - light.get_height() / 2,
+        ),
+    )
+    screen.blit(filter_surface, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
 
 
 def get_coordinate_relative_to_screen(x, y):
@@ -593,9 +613,9 @@ def souris_buldozering():
     possibles_tiles_not_blocked = [tile_of_souris]
     possibles_tiles_not_blocked: list[tile_class]
 
-    number_of_case = world_width_in_tile * world_height_in_tile
+    number_of_case_in_map = world_width_in_tile * world_height_in_tile
 
-    for _ in range(number_of_case):
+    for _ in range(number_of_case_in_map):
 
         tile_to_go = tile_of_souris.choose_random_valid_tile()
         tile_to_go: tile_class
@@ -833,15 +853,11 @@ murs_rendered = []  # important inalization
 
 
 def debugging():
-    central_tile = get_tile_by_coordinate((0, 0))
-
-    for adjacent_tile in central_tile.get_neighbour_tiles():
-        adjacent_tile: tile_class
-        adjacent_tile.check_if_generated()
+    "abe zazoza"
 
 
-debugging()
 while running:
+    debugging()
     if normal_view:
 
         murs_rendered = []
@@ -906,6 +922,7 @@ while running:
                 player.x += player.speed.x
 
             else:
+
                 player.speed.x = 0
 
                 mur_colliding = murs_rendered[index_of_mur_colliding]
@@ -943,6 +960,7 @@ while running:
             if index_of_mur_colliding == -1:
                 player.y += player.speed.y
             else:
+
                 player.speed.y = 0
 
                 mur_colliding = murs_rendered[index_of_mur_colliding]
@@ -958,6 +976,7 @@ while running:
                         + mur_colliding.height
                         + player.height / 2
                     )
+        apply_light_system()
 
     if carte_view:
         pygame.Surface.blit(
