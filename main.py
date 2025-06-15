@@ -1,7 +1,19 @@
 import pygame
 import random
 import math
-import json
+
+
+### notes to developper ###
+
+#   the "map" is all of the tile, rendered or not
+#   the "carte" is what's shown when pressing "m"
+#
+#   a wall (from 0 to 3) is the orientation of a wall relative to the tile (0's up and it's going counterclokwise)
+#   a mur is a rectangle (pygame.Rect), it's relative to the x_of_display
+#
+#   a tile (tile_class) is one square of the labyrinth
+#   the "souris" is to create the map, going from one tile to another and buldozering it
+
 
 pygame.init()
 screen = pygame.display.set_mode((1280, 720), vsync=1)
@@ -34,8 +46,8 @@ class player_class:
         self.acceleration_per_tick = self.max_speed / self.tick_to_reach_max_speed
         self.deceleration_per_tick = self.max_speed / self.tick_to_slow_down
 
-        self.height = 200
-        self.width = 100
+        self.height = 30
+        self.width = 15
 
         self.set_collide_box_to_default()
 
@@ -146,16 +158,16 @@ class player_class:
 
 
 class tile_class:
-    def __init__(self, location: tuple, letter: str):
+    def __init__(self, coordinate: tuple, letter: str):
         self.loaded = False
-        self.location = location
+        self.coordinate = coordinate
         self.letter = letter
         self.murs = None
         self.walls = None
         self.generated = False
 
     def __str__(self):
-        return f"{self.location},{self.letter}"
+        return f"{self.coordinate},{self.letter}"
 
     def __repr__(self):
         # repr and str are the same because repr is used in iterables (list) and str when it's only called once
@@ -169,15 +181,12 @@ class tile_class:
 
     def get_walls(self) -> tuple:
         self.walls: tuple
-        if self.walls != None:
-            return self.walls
-        else:
-            try:
-                self.walls = letter_to_walls[self.letter]
-                return letter_to_walls[self.letter]
-            except KeyError:
-                self.walls = letter_to_walls["f"]
-                return letter_to_walls["f"]  #  f for Null
+        try:
+            self.walls = letter_to_walls[self.letter]
+            return letter_to_walls[self.letter]
+        except KeyError:
+            self.walls = letter_to_walls["f"]
+            return letter_to_walls["f"]  #  f for Null
 
     def get_murs(self):
 
@@ -189,29 +198,29 @@ class tile_class:
             match orientation:  # 0 is up and it's going counterclockwise (i think(i'm  actually pretty sure))
                 case 0:
                     mur = pygame.Rect(
-                        tile_size * self.location[0] - x_of_display,
-                        tile_size * self.location[1] - y_of_display,
+                        tile_size * self.coordinate[0] - x_of_display,
+                        tile_size * self.coordinate[1] - y_of_display,
                         tile_size + wall_width,
                         wall_width,
                     )
                 case 1:
                     mur = pygame.Rect(
-                        tile_size * self.location[0] - x_of_display,
-                        tile_size * self.location[1] - y_of_display,
+                        tile_size * self.coordinate[0] - x_of_display,
+                        tile_size * self.coordinate[1] - y_of_display,
                         wall_width,
                         tile_size + wall_width,
                     )
                 case 2:
                     mur = pygame.Rect(
-                        tile_size * (self.location[0]) - x_of_display,
-                        tile_size * (self.location[1] + 1) - y_of_display,
+                        tile_size * (self.coordinate[0]) - x_of_display,
+                        tile_size * (self.coordinate[1] + 1) - y_of_display,
                         tile_size + wall_width,
                         wall_width,
                     )
                 case 3:
                     mur = pygame.Rect(
-                        tile_size * (self.location[0] + 1) - x_of_display,
-                        tile_size * (self.location[1]) - y_of_display,
+                        tile_size * (self.coordinate[0] + 1) - x_of_display,
+                        tile_size * (self.coordinate[1]) - y_of_display,
                         wall_width,
                         tile_size + wall_width,
                     )
@@ -219,21 +228,21 @@ class tile_class:
         self.murs = murs
         return murs
 
-    ########### generating the wall at start ###########
+    ########### generating the walls at start ###########
 
     def get_neighbour_tiles(self):
         return (
-            get_tile_by_coordinate((self.location[0], self.location[1] - 1)),
-            get_tile_by_coordinate((self.location[0], self.location[1] + 1)),
-            get_tile_by_coordinate((self.location[0] - 1, self.location[1])),
-            get_tile_by_coordinate((self.location[0] + 1, self.location[1])),
+            get_tile_by_coordinate((self.coordinate[0], self.coordinate[1] - 1)),
+            get_tile_by_coordinate((self.coordinate[0], self.coordinate[1] + 1)),
+            get_tile_by_coordinate((self.coordinate[0] - 1, self.coordinate[1])),
+            get_tile_by_coordinate((self.coordinate[0] + 1, self.coordinate[1])),
         )
 
     def get_not_generated_neighbour_tiles(self):
         output = []
         tile_in_check: tile_class
         for tile_in_check in self.get_neighbour_tiles():
-            if tile_in_check.generated:
+            if not tile_in_check.generated:
                 output.append(tile_in_check)
 
         return output
@@ -255,15 +264,39 @@ class tile_class:
                 random.randint(0, not_generated_neighbour_tiles_length - 1)
             ]
 
+    def buldozer_to_tile(self, other_tile):
+        tile = other_tile  # other_tile can't be recognized as tile_class
+        tile: tile_class
+        if tile in self.get_neighbour_tiles():
+            self.destroy_wall(self.get_direction_to_tile(tile))
+            tile.destroy_wall(get_opposite_wall(self.get_direction_to_tile(tile)))
+
+        self.actualize_letter()
+        tile.actualize_letter()
+
     def destroy_wall(self, wall: int):
+        if self.walls is not None:
+            list_self_walls = list(self.walls)
 
-        list_self_walls = list(self.walls)
+            if wall in self.get_walls():
+                list_self_walls.remove(wall)
 
-        if wall in self.get_walls():
+            self.walls = tuple(list_self_walls)
 
-            list_self_walls.remove(wall)
+    def get_direction_to_tile(self, other_tile):
 
-        self.walls = tuple(list_self_walls)
+        tile = other_tile  # other_tile can't be recognized as tile_class
+
+        tile: tile_class
+        if tile in self.get_neighbour_tiles():
+            if tile.coordinate[1] < self.coordinate[1]:
+                return 0
+            elif tile.coordinate[0] < self.coordinate[0]:
+                return 1
+            elif tile.coordinate[1] > self.coordinate[1]:
+                return 2
+            elif tile.coordinate[0] > self.coordinate[0]:
+                return 3
 
     def check_if_generated(self):  # don't use it, it's bad
         if self.generated == False:
@@ -275,6 +308,13 @@ class tile_class:
         else:
             return True
 
+    def actualize_letter(self):
+
+        if self.walls is None:
+            self.letter = "f"
+        else:
+            self.letter = walls_to_letter[self.walls]
+
 
 # screen shit
 
@@ -283,12 +323,6 @@ def get_coordinate_relative_to_screen(x, y):
     x_relative = x - x_of_display
     y_relative = y - y_of_display
     return (x_relative, y_relative)
-
-
-def set_rect_center_at(rectangle: pygame.Rect, x: float, y: float):
-    rectangle.x = x - rectangle.width / 2
-    rectangle.y = y - rectangle.height / 2
-    return rectangle
 
 
 def screen_follow_position(x: float, y: float, strength: float):
@@ -354,6 +388,25 @@ letter_to_walls = {
     "j": (2,),
     "h": (3,),
     "k": (1,),
+}
+
+walls_to_letter = {
+    (1, 3): "i",
+    (0, 2): "_",
+    (1, 2): "p",
+    (2, 3): "o",
+    (0, 1): "m",
+    (0, 3): "l",
+    (1, 2, 3): "z",
+    (0, 2, 3): "q",
+    (0, 1, 3): "s",
+    (0, 1, 2): "d",
+    (): "f",
+    (0, 1, 2, 3): "g",
+    (0,): "u",
+    (2,): "j",
+    (3,): "h",
+    (1,): "k",
 }
 
 
@@ -516,97 +569,48 @@ scripted_map = [
 ]
 
 
-def generate_map(script: list = None, width: int = 50, height: int = 50):
-
-    if script != None:
-        world_width_in_tile, world_height_in_tile = (
-            check_for_max_width_and_height_of_map(script)
+def set_scripted_map(script: list):
+    world_width_in_tile, world_height_in_tile = (
+        check_for_max_width_and_height_of_script(script)
+    )
+    world_tiles = []
+    for coordinate_and_letter in script:
+        world_tiles.append(
+            tile_class(coordinate_and_letter[0], coordinate_and_letter[1])
         )
-        world_tiles = []
-        for coordinate_and_letter in script:
-            world_tiles.append(
-                tile_class(coordinate_and_letter[0], coordinate_and_letter[1])
-            )
 
-        return (world_tiles, world_width_in_tile, world_height_in_tile)
-
-    else:
-
-        world_tiles = []
-
-        position = (0, 0)
-
-        for _ in range(height):  # height
-            for _ in range(width):  # width
-                world_tiles.append(tile_class(position, generate_random_letter()))
-                position = (position[0] + 1, position[1])
-
-            position = (0, position[1] + 1)
-
-        return (world_tiles, width, height)
+    return (world_tiles, world_width_in_tile, world_height_in_tile)
 
 
-def generate_random_letter():
-    possibility = "ujhk_if"  # only tile with 2 walls or less
-    return possibility[random.randrange(possibility.__len__())]
-
-
-def check_for_max_width_and_height_of_map(map) -> tuple[int, int]:
+def check_for_max_width_and_height_of_script(map) -> tuple[int, int]:
     return (map[len(map) - 1][0][0] + 1, map[len(map) - 1][0][1])
 
 
-tile_map, world_width_in_tile, world_height_in_tile = generate_map(scripted_map)
+def souris_buldozering():
+
+    tile_of_souris = get_tile_by_coordinate((0, 0))
+
+    tile_of_souris.buldozer_to_tile(get_tile_by_coordinate((1, 0)))
+    print(tile_of_souris.get_walls())
 
 
-def get_murs_of_coordinate(tile_position: tuple):
+def get_default_map(width: int = 50, height: int = 50):
+    world_tiles = []
+    position = (0, 0)
 
-    letter = get_tile_by_coordinate(tile_position)
-    murs_of_tile = []
+    for _ in range(height):
+        for _ in range(width):
+            world_tiles.append(tile_class(position, "g"))  # "g" for all
+            position = (position[0] + 1, position[1])
+        position = (0, position[1] + 1)
 
-    walls_to_draw = letter.get_walls()
-
-    for wall in walls_to_draw:
-
-        murs_of_tile.append(get_mur_from_wall(tile_position, wall))
-    return murs_of_tile
-
-
-def get_mur_from_wall(tile_position: tuple, orientation: int):
-
-    match orientation:  # 0 is up and it's going counterclockwise (i think)
-        case 0:
-            rect_to_draw = pygame.Rect(
-                tile_size * tile_position[0] - x_of_display,
-                tile_size * tile_position[1] - y_of_display,
-                tile_size + wall_width,
-                wall_width,
-            )
-        case 1:
-            rect_to_draw = pygame.Rect(
-                tile_size * tile_position[0] - x_of_display,
-                tile_size * tile_position[1] - y_of_display,
-                wall_width,
-                tile_size + wall_width,
-            )
-        case 2:
-            rect_to_draw = pygame.Rect(
-                tile_size * (tile_position[0]) - x_of_display,
-                tile_size * (tile_position[1] + 1) - y_of_display,
-                tile_size + wall_width,
-                wall_width,
-            )
-        case 3:
-            rect_to_draw = pygame.Rect(
-                tile_size * (tile_position[0] + 1) - x_of_display,
-                tile_size * (tile_position[1]) - y_of_display,
-                wall_width,
-                tile_size + wall_width,
-            )
-
-    return rect_to_draw
+    return (world_tiles, width, height)
 
 
-def get_tile_by_coordinate(coordinate: tuple):
+### general function ###
+
+
+def get_tile_by_coordinate(coordinate: tuple) -> tile_class:
     if coordinate[0] >= 0 and coordinate[1] >= 0:
         coordinate_in_map = int(coordinate[0] + coordinate[1] * world_width_in_tile)
 
@@ -624,7 +628,7 @@ def get_tile_by_coordinate(coordinate: tuple):
 
             return tile_class(coordinate, "f")  # "f" for blank
 
-        if tile.location != coordinate:
+        if tile.coordinate != coordinate:
             raise ValueError(
                 "the coordinate of the output (%d,%d) weren't the coordinate of the input (%d,%d)"
                 % (
@@ -666,9 +670,22 @@ def get_tiles_at_screen():
     )
 
 
+def get_opposite_wall(wall: int):
+    if wall == 1:  # it's bad, i know but i'm tired of doing a complex thing
+        return 3
+    else:
+        return abs(wall - 2)
+
+
 def draw_all_wall(walls_to_draw: list):
     for wall in walls_to_draw:
         pygame.draw.rect(screen, "white", wall)
+
+
+def set_rect_center_at(rectangle: pygame.Rect, x: float, y: float):
+    rectangle.x = x - rectangle.width / 2
+    rectangle.y = y - rectangle.height / 2
+    return rectangle
 
 
 player = player_class()
@@ -683,7 +700,7 @@ def closest_to(number: float, first_number: float, second_number: float):
         return second_number
 
 
-####### function for displaying map #######
+####### function for carte #######
 
 
 def show_map():
@@ -714,6 +731,7 @@ def generate_carte_surface() -> pygame.Surface:
 
     for tile in tile_map:
         tile: tile_class
+
         for mur in tile.get_murs():
             pygame.draw.rect(output_surface, "white", mur)
     ratio_of_width_and_height_of_output = (output_surface.get_width() + wall_width) / (
@@ -722,7 +740,8 @@ def generate_carte_surface() -> pygame.Surface:
 
     if ratio_of_width_and_height_of_output < (screen.get_width() / screen.get_height()):
         scaled_output_surface = pygame.transform.scale(
-            output_surface(
+            output_surface,
+            (
                 screen.get_height() * ratio_of_width_and_height_of_output
                 - padding_width_of_carte * 2,
                 screen.get_height() - padding_height_of_carte * 2,
@@ -747,24 +766,30 @@ def generate_carte_surface() -> pygame.Surface:
 ############    ############    ############
 
 
+############  map initialization    ############
+tile_map, world_width_in_tile, world_height_in_tile = get_default_map()
+
+# start with a blank map to initialize values
+# could be refactored to better performance
+
+
+souris_buldozering()
+
 ############ carte initialization ############
 carte_surface = generate_carte_surface()
-print(carte_surface.get_size())
 normal_view = True
 carte_view = False
 
-############    ############    ############
 
 murs_rendered = []  # important inalization
 
 
 def debugging():
-    central_tile = tile_class((0, 0), "z")
+    central_tile = get_tile_by_coordinate((0, 0))
 
     for adjacent_tile in central_tile.get_neighbour_tiles():
+        adjacent_tile: tile_class
         adjacent_tile.check_if_generated()
-
-    get_tile_by_coordinate((0, 0)).destroy_wall(1)
 
 
 debugging()
