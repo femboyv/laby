@@ -43,11 +43,11 @@ class player_class:
         self.y = 125
 
         self.angle = pygame.math.Vector2(-1, 0)
-        self.max_speed = 2
+        self.max_speed = 2.75
         self.speed = pygame.math.Vector2(0, 0)
 
-        self.tick_to_reach_max_speed = 1
-        self.tick_to_slow_down = 1
+        self.tick_to_reach_max_speed = 10
+        self.tick_to_slow_down = 5
 
         self.acceleration_per_tick = self.max_speed / self.tick_to_reach_max_speed
         self.deceleration_per_tick = self.max_speed / self.tick_to_slow_down
